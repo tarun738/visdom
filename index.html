@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VisDom: Sparse Novel View Synthesis with Visible Domain Constraint</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #2563eb;
+      --accent-light: #dbeafe;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --bg: #ffffff;
+      --section-gap: 4rem;
+      --max-w: 960px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 16px;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .container-xl {
+      max-width: 1340px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .container-xl > h2,
+    .container-xl > h3,
+    .container-xl > p,
+    .container-xl > .caption {
+      max-width: var(--max-w);
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      padding: 3.5rem 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .venue-badge {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      margin-bottom: 1.2rem;
+    }
+
+    h1 {
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+      font-weight: 800;
+      max-width: 820px;
+      margin: 0 auto 1.4rem;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+    }
+
+    .method-name {
+      color: var(--accent);
+    }
+
+    .authors {
+      font-size: 1rem;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+
+    .authors span.equal {
+      font-size: 0.78rem;
+      vertical-align: super;
+      color: var(--muted);
+    }
+
+    .author-link {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px solid var(--muted);
+    }
+    .author-link:hover { border-bottom-color: var(--accent); color: var(--accent); }
+
+    .affiliations {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .links {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 0.45rem 1rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .btn:hover {
+      border-color: var(--accent);
+      background: var(--accent-light);
+      text-decoration: none;
+    }
+
+    .btn svg { flex-shrink: 0; }
+
+    /* ── Sections ── */
+    section {
+      padding: var(--section-gap) 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    section:last-child { border-bottom: none; }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.2rem;
+      letter-spacing: -0.01em;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+      margin-top: 1.4rem;
+    }
+
+    p { margin-bottom: 0.9rem; }
+    p:last-child { margin-bottom: 0; }
+
+    /* ── Abstract ── */
+    .abstract-box {
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.6rem 2rem;
+      font-size: 0.97rem;
+    }
+
+    /* ── Teaser ── */
+    .teaser-wrap {
+      margin: 2rem 0 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .teaser-wrap img {
+      width: 100%;
+      display: block;
+    }
+
+    .caption {
+      font-size: 0.84rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 0.5rem;
+      line-height: 1.45;
+    }
+
+    /* ── Key idea highlight ── */
+    .highlight-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.2rem;
+      margin: 1.5rem 0;
+    }
+
+    .highlight-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.4rem;
+    }
+
+    .highlight-card .icon {
+      font-size: 1.6rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .highlight-card h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.35rem;
+    }
+
+    .highlight-card p {
+      font-size: 0.87rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    /* ── Figures ── */
+    .fig-row {
+      display: grid;
+      gap: 1rem;
+      margin: 1.5rem 0 0.5rem;
+    }
+
+    .fig-row.two-col { grid-template-columns: 1fr 1fr; }
+    .fig-row.single { grid-template-columns: 1fr; }
+
+    .fig-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .fig-item img {
+      width: 100%;
+      display: block;
+    }
+
+    .fig-item .cap {
+      font-size: 0.8rem;
+      color: var(--muted);
+      padding: 0.55rem 0.75rem;
+      background: #f9fafb;
+      border-top: 1px solid var(--border);
+      line-height: 1.4;
+    }
+
+    /* ── Gallery ── */
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 0.9rem;
+      margin-top: 1.2rem;
+    }
+
+    .gallery img {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: block;
+    }
+
+    /* ── Results table ── */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 1.5rem 0 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    th {
+      background: #f3f4f6;
+      font-weight: 700;
+      text-align: center;
+      padding: 0.55rem 0.7rem;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 0.45rem 0.7rem;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .table-wrap.compact table { font-size: 0.78rem; }
+    .table-wrap.compact th { padding: 0.45rem 0.5rem; }
+    .table-wrap.compact td { padding: 0.38rem 0.5rem; }
+
+    tr:last-child td { border-bottom: none; }
+
+    td.label { text-align: left; font-weight: 600; }
+    td.dataset { font-weight: 700; background: #f9fafb; }
+
+    .best   { background: #bbf7d0; font-weight: 700; }
+    .second { background: #bfdbfe; font-weight: 700; }
+
+    .visd-header { background: #ede9fe !important; }
+
+    /* ── Pipeline / method diagram ── */
+    .method-fig {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 1rem;
+      margin: 1.5rem 0 0.5rem;
+    }
+
+    /* ── Stats bar ── */
+    .stats-row {
+      display: flex;
+      gap: 2.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 2rem 0;
+      padding: 1.6rem;
+      background: var(--accent);
+      border-radius: 10px;
+      color: #fff;
+    }
+
+    .stat { text-align: center; }
+    .stat .num { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+    .stat .lbl { font-size: 0.82rem; opacity: 0.85; margin-top: 0.25rem; }
+
+    /* ── Citation ── */
+    .citation-box {
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.6rem;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #374151;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 2rem 1.5rem;
+      font-size: 0.83rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Visual Hull Demo Grid ── */
+    .vhull-demo {
+      display: grid;
+      grid-template-columns: 4rem repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-top: 1.2rem;
+      align-items: center;
+    }
+
+    .vhull-label { /* top header labels */ }
+
+    .vhull-rowlabel {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-align: right;
+      padding-right: 0.6rem;
+      line-height: 1.3;
+    }
+
+    .vhull-cell {
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #000;
+    }
+
+    .vhull-cell img {
+      width: 100%;
+      display: block;
+    }
+
+    .vhull-badge {
+      position: absolute;
+      bottom: 0.4rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.15rem 0.55rem;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    .vhull-badge--bad  { background: rgba(220,38,38,0.75); }
+    .vhull-badge--good { background: rgba(22,163,74,0.75); }
+
+    /* ── ZipNeRF comparison grid ── */
+    .zip-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.2rem;
+      margin-top: 1.2rem;
+    }
+
+    .zip-pair {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .zip-pair-header {
+      background: #f3f4f6;
+      text-align: center;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .zip-pair-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .zip-col { position: relative; }
+    .zip-col img { width: 100%; display: block; }
+    .zip-col + .zip-col { border-left: 2px solid #fff; }
+
+    .zip-col-label {
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.3rem 0.25rem;
+    }
+
+    .zip-label--mask { background: #fef2f2; color: #b91c1c; }
+    .zip-label--vd   { background: #f0fdf4; color: #15803d; }
+    .zip-label--base { background: #f3f4f6; color: #374151; }
+
+    /* ── Video in comparison grid ── */
+    .zip-col video { width: 100%; display: block; }
+
+    /* ── Teaser panel labels ── */
+    .teaser-labeled {
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .teaser-labeled img { width: 100%; display: block; }
+
+    .teaser-label-header {
+      position: relative;
+      background: #f3f4f6;
+      height: 1.7rem;
+      border-radius: 6px 6px 0 0;
+      border: 1px solid var(--border);
+      border-bottom: none;
+    }
+
+    .teaser-label-header span {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      color: #374151;
+      font-size: 0.68rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    /* ── Figure flex label rows ── */
+    .fig-label-row {
+      display: flex;
+      background: #f3f4f6;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #374151;
+    }
+    .fig-label-col {
+      flex: 1;
+      text-align: center;
+      padding: 0.32rem 0.2rem;
+    }
+    .fig-label-col + .fig-label-col { border-left: 1px solid var(--border); }
+    .fig-label-section { display: flex; flex: 1; }
+    .fig-label-section + .fig-label-section { border-left: 2px solid #9ca3af; }
+
+    .teaser-divider {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 1px;
+      background: #d1d5db;
+    }
+
+    /* ── Camera setup standalone ── */
+    .cam-setup-fig {
+      max-width: 340px;
+      margin: 1rem auto 1.2rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      text-align: center;
+    }
+    .cam-setup-fig img { width: 100%; display: block; }
+    .cam-setup-fig .cap { font-size: 0.78rem; color: var(--muted); padding: 0.4rem 0.6rem; background: #f9fafb; border-top: 1px solid var(--border); }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .fig-row.two-col { grid-template-columns: 1fr; }
+      .method-fig { grid-template-columns: 1fr; }
+      .stats-row { gap: 1.5rem; }
+      .stat .num { font-size: 1.7rem; }
+      .vhull-demo { grid-template-columns: 3rem repeat(3, 1fr); gap: 0.3rem; }
+      .zip-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     HEADER
+════════════════════════════════════════ -->
+<header>
+  <h1>
+    <span class="method-name">VisDom:</span> Sparse Novel View Synthesis<br>
+    with Visible Domain Constraint
+  </h1>
+
+  <p class="authors">
+    <a href="https://cvg.cit.tum.de/members/gladkova" class="author-link">Mariia Gladkova</a><span class="equal">*1,2</span>&ensp;
+    <a href="https://tarun738.github.io/" class="author-link">Tarun Yenamandra</a><span class="equal">*1,2</span>&ensp;
+    <a href="https://eboyerfr.github.io/" class="author-link">Edmond Boyer</a>&ensp;
+    <a href="http://www.rmaier.net/" class="author-link">Robert Maier</a>&ensp;
+    <a href="https://sites.google.com/site/tony2ng/" class="author-link">Tony Tung</a>&ensp;
+    <a href="http://cvg.cit.tum.de/members/cremers" class="author-link">Daniel Cremers</a><span class="equal">1,2</span>
+  </p>
+  <p class="affiliations">
+    <sup>1</sup>TU Munich &nbsp;·&nbsp; <sup>2</sup>MCML
+    &nbsp;·&nbsp; <span style="font-size:0.8rem;">* equal contribution</span>
+  </p>
+
+  <div class="links">
+    <a class="btn" href="https://arxiv.org/pdf/2606.20531">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Paper
+    </a>
+    <a class="btn" href="https://arxiv.org/abs/2606.20531">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      arXiv
+    </a>
+    <a class="btn" href="#">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      Code (coming soon)
+    </a>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════
+     TEASER
+════════════════════════════════════════ -->
+<section>
+  <div class="container">
+    <div class="teaser-label-header">
+      <div class="teaser-divider" style="left:17%"></div>
+      <div class="teaser-divider" style="left:34%"></div>
+      <div class="teaser-divider" style="left:50.5%"></div>
+      <div class="teaser-divider" style="left:67.5%"></div>
+      <div class="teaser-divider" style="left:85%"></div>
+      <span style="left:8.5%">Train images</span>
+      <span style="left:25.5%">ZipNeRF</span>
+      <span style="left:42.25%">3DGS-GO</span>
+      <span style="left:59%">ZipNeRF <em style="font-style:italic;opacity:0.9;">+ VisDom</em></span>
+      <span style="left:76.25%">3DGS-GO <em style="font-style:italic;opacity:0.9;">+ VisDom</em></span>
+      <span style="left:92.5%">Ground truth</span>
+    </div>
+    <div class="teaser-labeled" style="border-radius:0 0 8px 8px;margin-top:0;">
+      <img src="figures/bonsai_4_031.png" alt="VisDom teaser — bonsai 4 views" />
+    </div>
+    <div class="teaser-labeled" style="margin-top:0.5rem;">
+      <img src="figures/guitar_002_4_009.png" alt="VisDom teaser — guitar 4 views" />
+    </div>
+    <p class="caption" style="margin-top:0.75rem;">
+      <strong>VisDom enables high-quality reconstruction from as few as 4 input views.</strong><br>
+      Without VisDom, general-purpose methods fail catastrophically at this sparsity; our constraint recovers photorealistic results.
+    </p>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     ABSTRACT
+════════════════════════════════════════ -->
+<section>
+  <div class="container">
+    <h2>Abstract</h2>
+    <div class="abstract-box">
+      <p>
+        Sparse novel view synthesis (NVS) remains challenging due to the ambiguity of recovering 3D geometry from few input views. While NeRF- and Gaussian Splatting (GS)-based methods perform well with dense supervision, they often overfit in sparse settings, producing floating artifacts and inconsistent geometry. Silhouette consistency is commonly used as a regularizer, but it remains insufficient, as silhouette-consistent regions can extend beyond the true object geometry.
+      </p>
+      <p>
+        We introduce <strong>VisDom</strong>, a learning-free geometric constraint that augments classical carving-based visual hull reconstruction by enforcing a minimum multi-view visibility requirement. Specifically, we define a <em>visible domain</em> as the subset of 3D space observed by at least <em>K</em> views and use it as an additional filtering criterion on top of standard silhouette-based reconstruction. This provides a stronger spatial prior in sparse-view settings.
+      </p>
+      <p style="margin-bottom:0">
+        We integrate VisDom into both implicit (NeRF) and explicit (GS) pipelines by restricting volumetric sampling and guiding Gaussian placement during optimization. Experiments on three challenging datasets show consistent improvements in sparse-view NVS, enabling high-quality object-centric reconstruction from as few as four input images. Our method is domain-agnostic, requires only silhouettes, and introduces no learned parameters, making it a simple complement to existing approaches. Applying VisDom on top of GaussianObject further improves performance on Omni3D and MipNeRF360, while matching or surpassing it at <strong>22× lower training cost</strong>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     KEY CONTRIBUTIONS
+════════════════════════════════════════ -->
+<section>
+  <div class="container">
+    <h2>Key Contributions</h2>
+
+    <div class="stats-row">
+      <div class="stat">
+        <div class="num">~90%</div>
+        <div class="lbl">PSNR gain at 4 views<br>(ZipNeRF on MipNeRF360)</div>
+      </div>
+      <div class="stat">
+        <div class="num">22×</div>
+        <div class="lbl">faster training than<br>GaussianObject</div>
+      </div>
+      <div class="stat">
+        <div class="num">2 s</div>
+        <div class="lbl">preprocessing time,<br>zero learned parameters</div>
+      </div>
+      <div class="stat">
+        <div class="num">5</div>
+        <div class="lbl">NVS frameworks<br>improved</div>
+      </div>
+    </div>
+
+    <div class="highlight-grid">
+      <div class="highlight-card">
+        <div class="icon">🔷</div>
+        <h4>Visible Domain Constraint</h4>
+        <p>Augments the classical visual hull by retaining only 3D regions observed by at least K cameras — removing ambiguous space that silhouettes alone cannot resolve.</p>
+      </div>
+      <div class="highlight-card">
+        <div class="icon">🔗</div>
+        <h4>Plug-and-play Integration</h4>
+        <p>Integrates into any NeRF (via ray-sampling bounds) or 3DGS pipeline (via Gaussian placement and interpolated-view supervision) with a single modification.</p>
+      </div>
+      <div class="highlight-card">
+        <div class="icon">📐</div>
+        <h4>Learning-free</h4>
+        <p>Zero learned parameters, no domain-specific training data, and no generative priors — relies solely on silhouettes extracted by off-the-shelf segmentation models.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     METHOD
+════════════════════════════════════════ -->
+<section>
+  <div class="container">
+    <h2>Method</h2>
+
+    <h3>The Problem with Silhouette-only Constraints</h3>
+    <p>
+      NeRF and 3DGS allocate density or place Gaussians without global geometric regularization, leading to floaters and structural inconsistencies in sparse settings. Adding a silhouette loss only carves out space excluded by silhouettes — but with few views the resulting visual hull is enormous, providing weak guidance and sometimes <em>degrading</em> performance (ZipNeRF+mask drops from 12.44 to 11.95 dB at 4 views on MipNeRF360).
+    </p>
+
+    <div class="fig-row single">
+      <div class="fig-item" style="padding:0;">
+        <!-- Section title row -->
+        <div style="display:flex;font-size:0.74rem;font-weight:700;color:#374151;border-bottom:1px solid var(--border);">
+          <div style="flex:1;background:#f3f4f6;text-align:center;padding:0.32rem 0;border-right:2px solid #9ca3af;">Visual Hull in 2D</div>
+          <div style="flex:1;background:#f3f4f6;text-align:center;padding:0.32rem 0;">Visual Hull in 3D (top view)</div>
+        </div>
+        <!-- Panel label row -->
+        <div class="fig-label-row">
+          <div class="fig-label-section" style="width:50%;">
+            <div class="fig-label-col">Capture Setup</div>
+            <div class="fig-label-col">Traditional</div>
+            <div class="fig-label-col">VisDom</div>
+          </div>
+          <div class="fig-label-section">
+            <div class="fig-label-col">Posed silhouettes</div>
+            <div class="fig-label-col">Traditional</div>
+            <div class="fig-label-col">Unit sphere</div>
+            <div class="fig-label-col">VisDom</div>
+          </div>
+        </div>
+        <img src="figures/visualhullConstraintSils.png" alt="Visual hull comparison: traditional vs VisDom" style="display:block;width:100%;border-radius:0 0 6px 6px;" />
+        <div class="cap" style="margin-top:0.5rem;">
+          Given 2 silhouettes, the traditional visual hull retains large ambiguous regions.
+          VisDom's visible domain constraint removes regions visible from fewer than K cameras, yielding a tighter, more reliable shape.
+          Top-view 3D comparison shows that unit-sphere clipping assumes object centering, while VisDom is data-driven and position-agnostic.
+        </div>
+      </div>
+    </div>
+
+    <h3>Visible Domain — The Core Idea</h3>
+    <p>
+      We define the <strong>visible domain</strong> as the subset of 3D space jointly observed by at least <em>K</em> cameras. This is applied <em>on top of</em> standard voxel carving: a voxel is retained only if (i) its occupancy votes exceed 95% of its visibility votes (standard hull) <em>and</em> (ii) it is visible from at least K cameras (our constraint). This removes weakly constrained voxels that are a primary source of spurious density in sparse reconstruction.
+    </p>
+
+    <div style="max-width:480px;margin:1.5rem auto 0.5rem;">
+      <div class="fig-item" style="padding:0;">
+        <!-- Section title row -->
+        <div style="display:flex;font-size:0.74rem;font-weight:700;color:#374151;border-bottom:1px solid var(--border);">
+          <div style="width:25%;background:#f3f4f6;text-align:center;padding:0.32rem 0;border-right:2px solid #9ca3af;">Camera setup</div>
+          <div style="flex:1;background:#f3f4f6;text-align:center;padding:0.32rem 0;">Visible domains</div>
+        </div>
+        <!-- Panel label row -->
+        <div class="fig-label-row">
+          <div style="width:25%;border-right:2px solid #9ca3af;"></div>
+          <div class="fig-label-col">K = 1</div>
+          <div class="fig-label-col">K = 2</div>
+          <div class="fig-label-col">K = 3</div>
+        </div>
+        <img src="figures/visibleDomain.png" alt="Visible domain for K=1,2,3" style="display:block;width:100%;border-radius:0 0 6px 6px;" />
+        <div class="cap" style="margin-top:0.5rem;">
+          Visible domain (purple) for K = 1, 2, 3 in a 3-camera setup.
+          Larger K narrows the covered region, leading to more precise shapes.
+        </div>
+      </div>
+    </div>
+
+    <h3>Integration into NeRF and Gaussian Splatting</h3>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin:1rem 0;">
+      <div style="border:1px solid var(--border);border-radius:8px;padding:1.2rem;">
+        <h4 style="font-size:1rem;margin-bottom:0.5rem;">NeRF Integration</h4>
+        <p style="font-size:0.88rem;color:var(--muted);margin:0;">
+          The VisDom visual hull is used to restrict each ray's sampling range [t<sub>n</sub>, t<sub>f</sub>] by intersecting it with the visual hull mesh. Rays only sample within the tightly constrained region, preventing density accumulation in ambiguous space. Combined with a silhouette loss (λ=0.1), this turns previously unusable methods into competitive ones.
+        </p>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:8px;padding:1.2rem;">
+        <h4 style="font-size:1rem;margin-bottom:0.5rem;">Gaussian Splatting Integration</h4>
+        <p style="font-size:0.88rem;color:var(--muted);margin:0;">
+          For 3DGS, we (1) initialize Gaussians from the VisDom visual hull mesh instead of COLMAP, and (2) penalize Gaussians that appear opaque outside the visual hull when rendered from interpolated camera views. This removes ghost-like floaters and confines the reconstruction to the visible domain.
+        </p>
+      </div>
+    </div>
+
+    <h3>Ablation: Choice of K</h3>
+    <p>
+      We ablate K ∈ {1, 2, 3, 4} on MipNeRF360. K=1 degrades to near-vanilla (unconstrained hull). K=2 eliminates most ambiguous space. K=3 achieves the best mean for ZipNeRF (25.99 dB) and is chosen as the default — it balances hull tightness against the risk of over-carving surface regions visible from only a few cameras at the hardest 4-view setting.
+    </p>
+
+    <div class="table-wrap" style="margin-top:1rem;">
+      <table>
+        <thead>
+          <tr>
+            <th>Views</th>
+            <th colspan="4">ZipNeRF + VD (PSNR ↑)</th>
+            <th colspan="4">3DGS-GO + VD (PSNR ↑)</th>
+          </tr>
+          <tr>
+            <th></th>
+            <th>K=1</th><th>K=2</th><th>K=3</th><th>K=4</th>
+            <th>K=1</th><th>K=2</th><th>K=3</th><th>K=4</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="label">4 views</td><td>13.55</td><td>22.71</td><td class="best">24.10</td><td>23.79</td><td>13.23</td><td>23.98</td><td class="best">24.06</td><td>24.00</td></tr>
+          <tr><td class="label">6 views</td><td>16.21</td><td>21.47</td><td class="best">25.80</td><td>22.04</td><td>18.23</td><td class="best">27.17</td><td>26.72</td><td>26.56</td></tr>
+          <tr><td class="label">9 views</td><td>18.66</td><td>28.06</td><td>28.06</td><td class="best">28.71</td><td>24.16</td><td class="best">29.06</td><td>28.45</td><td>28.54</td></tr>
+          <tr><td class="label"><strong>Mean</strong></td><td>16.14</td><td>24.08</td><td class="best">25.99</td><td>24.84</td><td>18.54</td><td class="best">26.74</td><td>26.41</td><td>26.36</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption">Ablation of K on MipNeRF360. K=3 provides the best mean across all view counts for ZipNeRF; K=2 peaks for 3DGS-GO but leaves residual floaters. We use K=3 as default.</p>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     RESULTS — QUANTITATIVE
+════════════════════════════════════════ -->
+<section>
+  <div class="container-xl">
+    <h2>Results</h2>
+
+    <h3>VisDom on General-purpose NeRF &amp; 3DGS Methods</h3>
+    <p>
+      We evaluate vanilla, +mask (silhouette loss only), and +VisDom on two NeRF methods and one 3DGS pipeline. This isolates VisDom's effect from any sparse-specific inductive biases.
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Dataset</th>
+            <th rowspan="2">Views</th>
+            <th colspan="3">Instant-NGP</th>
+            <th colspan="3">ZipNeRF</th>
+            <th colspan="2">3DGS-GO</th>
+          </tr>
+          <tr>
+            <th>Vanilla</th><th>+mask</th><th class="visd-header">+VD</th>
+            <th>Vanilla</th><th>+mask</th><th class="visd-header">+VD</th>
+            <th>Vanilla*</th><th class="visd-header">+VD</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="dataset" rowspan="3">MipNeRF360</td>
+            <td>4</td><td>13.67</td><td>13.73</td><td class="best">22.15</td>
+            <td>12.44</td><td>11.95</td><td class="best">24.10</td>
+            <td>23.61</td><td class="best">24.06</td></tr>
+          <tr><td>6</td><td>14.73</td><td>17.36</td><td class="best">24.14</td>
+            <td>11.89</td><td>12.78</td><td class="best">25.80</td>
+            <td>26.30</td><td class="best">26.72</td></tr>
+          <tr><td>9</td><td>16.04</td><td>20.74</td><td class="best">25.43</td>
+            <td>14.85</td><td>19.87</td><td class="best">28.06</td>
+            <td>27.93</td><td class="best">28.45</td></tr>
+
+          <tr><td class="dataset" rowspan="3">Omni3D</td>
+            <td>4</td><td>18.88</td><td>18.16</td><td class="best">27.44</td>
+            <td>15.04</td><td>15.02</td><td class="best">29.49</td>
+            <td>29.80</td><td class="best">30.32</td></tr>
+          <tr><td>6</td><td>19.95</td><td>22.01</td><td class="best">29.67</td>
+            <td>16.61</td><td>20.00</td><td class="best">32.28</td>
+            <td>33.09</td><td class="best">33.37</td></tr>
+          <tr><td>9</td><td>20.86</td><td>22.31</td><td class="best">31.06</td>
+            <td>23.16</td><td>25.30</td><td class="best">35.21</td>
+            <td>35.49</td><td class="best">35.69</td></tr>
+
+          <tr><td class="dataset" rowspan="3">ActorsHQ</td>
+            <td>5</td><td>12.01</td><td>13.87</td><td class="best">23.53</td>
+            <td>10.85</td><td>10.33</td><td class="best">24.55</td>
+            <td>25.12</td><td class="best">25.69</td></tr>
+          <tr><td>8</td><td>13.86</td><td>14.96</td><td class="best">23.35</td>
+            <td>11.43</td><td>10.76</td><td class="best">26.72</td>
+            <td>27.44</td><td class="best">27.99</td></tr>
+          <tr><td>12</td><td>20.98</td><td>24.86</td><td class="best">25.67</td>
+            <td>11.32</td><td>28.38</td><td class="best">28.61</td>
+            <td>28.80</td><td class="best">29.13</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption">PSNR ↑ on three datasets. <span style="background:#bbf7d0;padding:0 4px;border-radius:2px;">Green</span> = best per-method variant. +VD consistently wins over Vanilla and +mask. *Vanilla = GaussianObject initialization stage only.</p>
+
+    <h3 style="margin-top:2.5rem;">Comparison Against Sparse-specific Methods</h3>
+    <p>
+      VisDom is applied to CoR-GS and GaussianObject (GO) and benchmarked against state-of-the-art sparse NVS methods. CoR-GS+VD leads on MipNeRF360; 3DGS+VD leads on ActorsHQ. GO+VD achieves the best Omni3D mean. Importantly, <strong>3DGS+VD trains in just 2 minutes per scene</strong> — 22× faster than GO — while remaining competitive.
+    </p>
+
+    <div class="table-wrap compact">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Dataset</th>
+            <th rowspan="2">Cams</th>
+            <th>VaxNeRF</th>
+            <th>ZeroRF</th>
+            <th>SplatFields</th>
+            <th>FSGS</th>
+            <th>CoR-GS</th>
+            <th>GO</th>
+            <th class="visd-header">INGP+VD</th>
+            <th class="visd-header">ZipNeRF+VD</th>
+            <th class="visd-header">3DGS+VD</th>
+            <th class="visd-header">CoR-GS+VD</th>
+            <th class="visd-header">GO+VD</th>
+          </tr>
+          <tr>
+            <th colspan="2" style="font-size:0.75rem;color:var(--muted);">Train time →</th>
+            <th style="font-size:0.75rem;">1h</th>
+            <th style="font-size:0.75rem;">14m</th>
+            <th style="font-size:0.75rem;">10m</th>
+            <th style="font-size:0.75rem;">45m</th>
+            <th class="visd-header" style="font-size:0.75rem;">20m</th>
+            <th class="visd-header" style="font-size:0.75rem;">40m</th>
+            <th class="visd-header" style="font-size:0.75rem;font-weight:800;">2m ⚡</th>
+            <th class="visd-header" style="font-size:0.75rem;">10m</th>
+            <th class="visd-header" style="font-size:0.75rem;">45m</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="dataset" rowspan="4">MipNeRF360</td>
+            <td>4</td><td>18.14</td><td>14.17</td><td>22.24</td><td>23.38</td><td>24.04</td><td>24.02</td>
+            <td>22.15</td><td>24.10</td><td>24.06</td><td class="best">24.64</td><td class="second">24.16</td></tr>
+          <tr><td>6</td><td>20.39</td><td>24.14</td><td>24.57</td><td>26.17</td><td>25.81</td><td>26.23</td>
+            <td>24.14</td><td>25.80</td><td class="second">26.72</td><td class="best">27.35</td><td>26.50</td></tr>
+          <tr><td>9</td><td>21.53</td><td>27.78</td><td>26.58</td><td>28.16</td><td>28.58</td><td>27.94</td>
+            <td>25.43</td><td>28.06</td><td>28.45</td><td class="best">29.32</td><td>28.14</td></tr>
+          <tr><td><strong>Mean</strong></td><td>20.02</td><td>22.03</td><td>24.46</td><td>25.91</td><td>26.14</td><td>26.06</td>
+            <td>23.91</td><td>25.99</td><td class="second">26.41</td><td class="best">27.10</td><td>26.27</td></tr>
+
+          <tr><td class="dataset" rowspan="4">Omni3D</td>
+            <td>4</td><td>18.35</td><td>27.78</td><td>28.49</td><td>27.31</td><td>28.97</td><td>30.37</td>
+            <td>27.44</td><td>29.49</td><td>30.32</td><td>29.82</td><td class="best">30.71</td></tr>
+          <tr><td>6</td><td>19.60</td><td>31.94</td><td>32.05</td><td>29.74</td><td>32.51</td><td>33.26</td>
+            <td>29.67</td><td>32.28</td><td class="best">33.37</td><td>32.87</td><td class="second">33.29</td></tr>
+          <tr><td>9</td><td>20.91</td><td>32.93</td><td>34.66</td><td>33.46</td><td>34.94</td><td>35.56</td>
+            <td>31.06</td><td>35.21</td><td class="best">35.69</td><td>35.56</td><td class="second">35.59</td></tr>
+          <tr><td><strong>Mean</strong></td><td>19.62</td><td>30.88</td><td>31.73</td><td>30.17</td><td>32.14</td><td>33.06</td>
+            <td>29.39</td><td>32.33</td><td class="second">33.12</td><td>32.75</td><td class="best">33.20</td></tr>
+
+          <tr><td class="dataset" rowspan="4">ActorsHQ</td>
+            <td>5</td><td>13.14</td><td>25.13</td><td>22.16</td><td>24.44</td><td>24.94</td><td>24.91</td>
+            <td>23.53</td><td>24.55</td><td class="best">25.69</td><td class="second">25.27</td><td>24.85</td></tr>
+          <tr><td>8</td><td>14.51</td><td>26.47</td><td>24.67</td><td>26.48</td><td>26.93</td><td>26.98</td>
+            <td>23.35</td><td>26.72</td><td class="best">27.99</td><td class="second">27.06</td><td>26.87</td></tr>
+          <tr><td>12</td><td>15.27</td><td>27.59</td><td>26.90</td><td>27.96</td><td>28.21</td><td>28.17</td>
+            <td>25.67</td><td class="second">28.61</td><td class="best">29.13</td><td>28.22</td><td>28.10</td></tr>
+          <tr><td><strong>Mean</strong></td><td>14.31</td><td>26.40</td><td>24.58</td><td>26.29</td><td>26.69</td><td>26.69</td>
+            <td>24.18</td><td>26.63</td><td class="best">27.60</td><td class="second">26.85</td><td>26.61</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption">
+      PSNR ↑ comparison. <span style="background:#bbf7d0;padding:0 4px;border-radius:2px;">Green</span> = best, <span style="background:#bfdbfe;padding:0 4px;border-radius:2px;">Blue</span> = second best per row.
+      Lavender-shaded columns = our VisDom variants. VaxNeRF and ZeroRF both train in 2h (shown as a grouped label).
+    </p>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     QUALITATIVE RESULTS
+════════════════════════════════════════ -->
+<section>
+  <div class="container">
+    <h2>Qualitative Results</h2>
+
+    <!-- ── Visual Hull: Visible Domain Progression ── -->
+    <h3>Visual Hull Improvement with the Visible Domain Constraint</h3>
+    <p>
+      As the minimum visibility threshold K increases, the visible domain tightens, carving out more ambiguous space.
+      The traditional visual hull (K=1) retains large, poorly-constrained regions; VisDom at K=3 yields a compact, reliable shape.
+    </p>
+
+    <!-- Camera setup — shared across both rows -->
+    <div class="cam-setup-fig">
+      <img src="figures/gifs/cam_setup.gif" alt="Camera setup" />
+      <div class="cap">Camera setup (shared)</div>
+    </div>
+
+    <div class="vhull-demo">
+      <!-- Column headers -->
+      <div class="vhull-label"></div>
+      <div class="vhull-label" style="text-align:center;font-size:0.78rem;font-weight:700;color:var(--muted);padding-bottom:0.3rem;">K = 1</div>
+      <div class="vhull-label" style="text-align:center;font-size:0.78rem;font-weight:700;color:var(--muted);padding-bottom:0.3rem;">K = 2</div>
+      <div class="vhull-label" style="text-align:center;font-size:0.78rem;font-weight:700;color:var(--muted);padding-bottom:0.3rem;">K = 3</div>
+
+      <!-- Row 1: Visible Domain -->
+      <div class="vhull-rowlabel">Visible<br>Domain</div>
+      <div class="vhull-cell">
+        <img src="figures/gifs/vd_k_eq1.gif" alt="Visible domain K=1" />
+      </div>
+      <div class="vhull-cell">
+        <img src="figures/gifs/vd_k_eq2.gif" alt="Visible domain K=2" />
+      </div>
+      <div class="vhull-cell">
+        <img src="figures/gifs/vd_k_eq3.gif" alt="Visible domain K=3" />
+      </div>
+
+      <!-- Row 2: Visual Hull -->
+      <div class="vhull-rowlabel">Visual<br>Hull</div>
+      <div class="vhull-cell">
+        <img src="figures/gifs/vh_k_eq1_vanilla.gif" alt="Visual hull K=1 (traditional)" />
+        <div class="vhull-badge vhull-badge--bad">K=1 (traditional)</div>
+      </div>
+      <div class="vhull-cell">
+        <img src="figures/gifs/vh_k_eq2.gif" alt="Visual hull K=2" />
+        <div class="vhull-badge">K = 2</div>
+      </div>
+      <div class="vhull-cell">
+        <img src="figures/gifs/vh_k_eq3.gif" alt="Visual hull K=3 (VisDom)" />
+        <div class="vhull-badge vhull-badge--good">VisDom (K=3)</div>
+      </div>
+    </div>
+    <p class="caption" style="margin-top:0.75rem;">
+      Top row: the visible domain (region jointly observed by at least K cameras) shrinks as K increases.
+      Bottom row: the resulting visual hull becomes progressively tighter and more accurate. The traditional hull (K=1) is overly permissive; VisDom at K=3 carves out all ambiguous space.
+    </p>
+
+    <!-- ── ZipNeRF: mask vs VisDom ── -->
+    <h3 style="margin-top:3rem;">ZipNeRF: Silhouette Mask vs. VisDom Constraint</h3>
+    <p>
+      Adding a silhouette mask loss alone is insufficient — and sometimes harmful — at low camera counts.
+      VisDom restricts ray sampling to the jointly-visible region, enabling faithful reconstruction from very few views.
+    </p>
+
+    <div class="zip-grid">
+      <!-- 5 cams -->
+      <div class="zip-pair">
+        <div class="zip-pair-header">5 cameras</div>
+        <div class="zip-pair-cols">
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--mask">+ Mask only</div>
+            <img src="figures/gifs/zip_wmask_5.gif" alt="ZipNeRF +mask, 5 cams" />
+          </div>
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--vd">+ VisDom</div>
+            <img src="figures/gifs/zip_wvd_5_1.gif" alt="ZipNeRF +VD, 5 cams" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 8 cams #1 -->
+      <div class="zip-pair">
+        <div class="zip-pair-header">8 cameras</div>
+        <div class="zip-pair-cols">
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--mask">+ Mask only</div>
+            <img src="figures/gifs/zip_wmask_8.gif" alt="ZipNeRF +mask, 8 cams" />
+          </div>
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--vd">+ VisDom</div>
+            <img src="figures/gifs/zip_wvd_8_1.gif" alt="ZipNeRF +VD, 8 cams" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 8 cams #2 -->
+      <div class="zip-pair">
+        <div class="zip-pair-header">8 cameras</div>
+        <div class="zip-pair-cols">
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--mask">+ Mask only</div>
+            <img src="figures/gifs/zip_wmask_8_2.gif" alt="ZipNeRF +mask, 8 cams #2" />
+          </div>
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--vd">+ VisDom</div>
+            <img src="figures/gifs/zip_wvd_8_2.gif" alt="ZipNeRF +VD, 8 cams #2" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 12 cams #1 -->
+      <div class="zip-pair">
+        <div class="zip-pair-header">12 cameras</div>
+        <div class="zip-pair-cols">
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--mask">+ Mask only</div>
+            <img src="figures/gifs/zip_wmask_12_1.gif" alt="ZipNeRF +mask, 12 cams" />
+          </div>
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--vd">+ VisDom</div>
+            <img src="figures/gifs/zip_wvd_12_1.gif" alt="ZipNeRF +VD, 12 cams" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 12 cams #2 -->
+      <div class="zip-pair">
+        <div class="zip-pair-header">12 cameras</div>
+        <div class="zip-pair-cols">
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--mask">+ Mask only</div>
+            <img src="figures/gifs/zip_wmask_12_2.gif" alt="ZipNeRF +mask, 12 cams #2" />
+          </div>
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--vd">+ VisDom</div>
+            <img src="figures/gifs/zip_wvd_12_2.gif" alt="ZipNeRF +VD, 12 cams #2" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption" style="margin-top:0.75rem;">
+      Each pair shows a 360° render from ZipNeRF trained with silhouette mask only (left) vs. with VisDom (right).
+      Floaters and geometry collapse are eliminated by VisDom across all camera counts.
+    </p>
+
+    <!-- ── 3DGS-GO: vanilla vs. VisDom ── -->
+    <h3 style="margin-top:3rem;">3DGS-GO: Vanilla vs. VisDom Constraint</h3>
+    <p>
+      VisDom guides Gaussian placement during optimization, suppressing floaters that 3DGS-GO places in ambiguous
+      free space. The improvement is most pronounced at 4 cameras and remains consistent as coverage increases.
+    </p>
+
+    <div class="zip-grid">
+      <!-- 4 cams -->
+      <div class="zip-pair">
+        <div class="zip-pair-header">4 cameras</div>
+        <div class="zip-pair-cols">
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--base">3DGS-GO</div>
+            <video autoplay loop muted playsinline>
+              <source src="figures/videos/dgs_vanilla_4.mp4" type="video/mp4">
+            </video>
+          </div>
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--vd">3DGS-GO + VisDom</div>
+            <video autoplay loop muted playsinline>
+              <source src="figures/videos/dgs_wvd_4.mp4" type="video/mp4">
+            </video>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 cams -->
+      <div class="zip-pair">
+        <div class="zip-pair-header">6 cameras</div>
+        <div class="zip-pair-cols">
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--base">3DGS-GO</div>
+            <video autoplay loop muted playsinline>
+              <source src="figures/videos/dgs_vanilla_6.mp4" type="video/mp4">
+            </video>
+          </div>
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--vd">3DGS-GO + VisDom</div>
+            <video autoplay loop muted playsinline>
+              <source src="figures/videos/dgs_wvd_6.mp4" type="video/mp4">
+            </video>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9 cams -->
+      <div class="zip-pair">
+        <div class="zip-pair-header">9 cameras</div>
+        <div class="zip-pair-cols">
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--base">3DGS-GO</div>
+            <video autoplay loop muted playsinline>
+              <source src="figures/videos/dgs_vanilla_9.mp4" type="video/mp4">
+            </video>
+          </div>
+          <div class="zip-col">
+            <div class="zip-col-label zip-label--vd">3DGS-GO + VisDom</div>
+            <video autoplay loop muted playsinline>
+              <source src="figures/videos/dgs_wvd_9.mp4" type="video/mp4">
+            </video>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption" style="margin-top:0.75rem;">
+      360° renders from 3DGS-GO (left) vs. 3DGS-GO + VisDom (right) at 4, 6, and 9 input cameras.
+      VisDom removes Gaussian floaters by restricting placement to the jointly-visible domain.
+    </p>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     CONCLUSION
+════════════════════════════════════════ -->
+<section>
+  <div class="container">
+    <h2>Conclusion &amp; Limitations</h2>
+
+    <p>
+      We presented <strong>VisDom</strong>, a learning-free geometric constraint that tightens the classical visual hull by restricting reconstruction to the region jointly visible in at least K views. A key finding is that silhouette supervision alone is insufficient at extreme sparsity — and can actively harm convergence — because the resulting visual hull is too large. VisDom resolves this by enforcing K-view co-visibility, removing ambiguous volume that silhouettes cannot resolve. The constraint adds only a <strong>2-second preprocessing step</strong> and <strong>zero learned parameters</strong>, and integrates with any NeRF or 3DGS pipeline via a single modification.
+    </p>
+    <p>
+      Across five reconstruction frameworks and three real-world datasets, VisDom consistently improves quality — enabling general-purpose methods that completely fail without it (up to <strong>~90% PSNR gain</strong> at 4 views), advancing sparse reconstruction models, and delivering competitive results without any additional learned parameters.
+    </p>
+
+    <div style="border-left:3px solid var(--accent);padding-left:1.2rem;margin:1.4rem 0;color:var(--muted);font-size:0.92rem;">
+      <strong style="color:var(--text);">Limitations.</strong>
+      In scenes with strong inter-view lighting variation (e.g., MipNeRF360), geometric constraints alone are insufficient without a generative prior. Below 4 views, silhouettes become too sparse for faithful reconstruction; combining VisDom with pre-trained models in this extreme regime is a natural future direction.
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     CITATION
+════════════════════════════════════════ -->
+<section>
+  <div class="container">
+    <h2>Citation</h2>
+    <div class="citation-box">@inproceedings{gladkova2026visdom,
+  title     = {VisDom: Sparse Novel View Synthesis with Visible Domain Constraint},
+  author    = {Gladkova, Mariia and Yenamandra, Tarun and Boyer, Edmond
+               and Maier, Robert and Tung, Tony and Cremers, Daniel},
+  booktitle = {German Conference on Pattern Recognition (GCPR)},
+  year      = {2026}
+}</div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════ -->
+<footer>
+  <div class="container">
+    <p>Built using <a href="https://claude.ai" style="color:var(--accent);text-decoration:none;">Claude</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
